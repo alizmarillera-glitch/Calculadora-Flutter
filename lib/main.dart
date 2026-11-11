@@ -26,6 +26,150 @@ class CalculadoraApp extends StatelessWidget {
   }
 }
 
+class PantallaCalculadora extends StatefulWidget {
+  const PantallaCalculadora({super.key});
+
+  @override
+  State<PantallaCalculadora> createState() => _PantallaCalculadoraState();
+}
+
+class _PantallaCalculadoraState extends State<PantallaCalculadora> {
+  String _expresion = '';
+  String _resultado = '0';
+  bool _grados = true;
+  double _ans = 0;
+
+  void _manejarTecla(String etiqueta) {
+    setState(() {
+      if (etiqueta == 'C') {
+        _expresion = '';
+        _resultado = '0';
+      } else if (etiqueta == '⌫') {
+        if (_expresion.isNotEmpty) {
+          _expresion = _expresion.substring(0, _expresion.length - 1);
+        }
+      } else if (etiqueta == '=') {
+        try {
+          final parser = Parser(_expresion, grados: _grados, ans: _ans);
+          final val = parser.evaluar();
+          _ans = val;
+          _resultado = formatear(val);
+        } catch (e) {
+          _resultado = e is CalcError ? e.mensaje : 'Error';
+        }
+      } else {
+        _expresion += etiqueta;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380, maxHeight: 680),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Calculadora Científica'),
+              actions: [
+                TextButton(
+                  onPressed: () => setState(() => _grados = !_grados),
+                  child: Text(
+                    _grados ? 'DEG' : 'RAD',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                )
+              ],
+            ),
+            body: Column(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    alignment: Alignment.bottomRight,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          _expresion,
+                          style: const TextStyle(fontSize: 22, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _resultado,
+                          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  flex: 5,
+                  child: _construirTeclado(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _construirTeclado() {
+    final botones = [
+      ['sin', 'cos', 'tan', 'C', '⌫'],
+      ['asin', 'acos', 'atan', '(', ')'],
+      ['sinh', 'cosh', 'tanh', '√', '^'],
+      ['log', 'ln', '!', 'π', '÷'],
+      ['7', '8', '9', 'Ans', '×'],
+      ['4', '5', '6', '%', '-'],
+      ['1', '2', '3', 'e', '+'],
+      ['0', '.', '='],
+    ];
+
+    return Container(
+      color: kGrisMuyOscuro,
+      child: Column(
+        children: botones.map((fila) {
+          return Expanded(
+            child: Row(
+              children: fila.map((etiqueta) {
+                return Expanded(
+                  flex: etiqueta == '=' ? 2 : 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _obtenerColorTecla(etiqueta),
+                        padding: EdgeInsets.zero,
+                      ),
+                      onPressed: () => _manejarTecla(etiqueta),
+                      child: Text(
+                        etiqueta,
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _obtenerColorTecla(String etiqueta) {
+    if (etiqueta == '=' || etiqueta == 'C') return kNaranja;
+    if (['+', '-', '×', '÷', '^', '%'].contains(etiqueta)) return kGrisOscuro;
+    return Colors.grey.shade900;
+  }
+}
+
 class CalcError implements Exception {
   final String mensaje;
   CalcError(this.mensaje);
@@ -159,7 +303,7 @@ class Parser {
     }
     if (p < s.length && s[p] == 'E') {
       var q = p + 1;
-      if (q < s.length && (s[q] == '+' || s[q] == '-')) q++;
+      if (q < s.length && (q < s.length && (s[q] == '+' || s[q] == '-'))) q++;
       if (q < s.length && _esDigito(s[q])) {
         while (q < s.length && _esDigito(s[q])) {
           q++;
@@ -273,5 +417,3 @@ class Tecla {
   Tecla(this.etiqueta, this.alPresionar,
       {this.tipo = Tipo.funcion, this.activa = false, this.icono});
 }
-
-class
